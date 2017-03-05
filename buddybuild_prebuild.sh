@@ -11,7 +11,7 @@ ANDROID_NDK_VERSION=r14
 INSTALLER_DIR=$HOME/.android-ndk
 
 cd
-wget https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-${os}-x86_64.zip
+wget -q https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-${os}-x86_64.zip
 unzip -q android-ndk-${ANDROID_NDK_VERSION}-${os}-x86_64.zip
-mv android-ndk-${ANDROID_NDK_VERSION} .android-ndk
-env
+mv android-ndk-${ANDROID_NDK_VERSION} ${ANDROID_NDK_HOME}
+cat ${ANDROID_NDK_HOME}/source.properties
