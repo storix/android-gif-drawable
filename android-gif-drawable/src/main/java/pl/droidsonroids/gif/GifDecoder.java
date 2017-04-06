@@ -76,7 +76,7 @@ public class GifDecoder {
 	 */
 	public void seekToTime(@IntRange(from = 0, to = Integer.MAX_VALUE) final int position, @NonNull final Bitmap buffer) {
 		checkBuffer(buffer);
-		mGifInfoHandle.seekToTime(position, buffer);
+		mGifInfoHandle.seekToTime(position, -1, buffer);
 	}
 
 	/**
@@ -88,7 +88,7 @@ public class GifDecoder {
 	 */
 	public void seekToFrame(@IntRange(from = 0, to = Integer.MAX_VALUE) final int frameIndex, @NonNull final Bitmap buffer) {
 		checkBuffer(buffer);
-		mGifInfoHandle.seekToFrame(frameIndex, buffer);
+		mGifInfoHandle.seekToFrame(frameIndex, -1, buffer);
 	}
 
 	/**

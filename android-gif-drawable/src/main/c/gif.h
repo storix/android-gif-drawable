@@ -220,7 +220,7 @@ uint_fast32_t getFrameDuration(GifInfo *info);
 
 JNIEnv *getEnv();
 
-uint_fast32_t seek(GifInfo *info, uint_fast32_t desiredIndex, void *pixels);
+uint_fast32_t seek(GifInfo *info, uint_fast32_t desiredIndex,  int_fast32_t maxFramesToRender, void *pixels);
 
 void setGCBDefaults(GraphicsControlBlock *gcb);
 

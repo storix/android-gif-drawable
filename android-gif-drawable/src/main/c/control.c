@@ -30,43 +30,57 @@ Java_pl_droidsonroids_gif_GifInfoHandle_setSpeedFactor(JNIEnv __unused *env, jcl
 	info->speedFactor = factor;
 }
 
-static uint_fast32_t seekBitmap(GifInfo *info, JNIEnv *env, jint desiredIndex, jobject jbitmap) {
+static uint_fast32_t seekBitmap(GifInfo *info, JNIEnv *env, jint desiredIndex, jint maxFramesToRender, jobject jbitmap) {
 	void *pixels;
 	if (lockPixels(env, jbitmap, info, &pixels) != 0) {
 		return 0;
 	}
-	uint_fast32_t duration = seek(info, (uint_fast32_t) desiredIndex, pixels);
+	uint_fast32_t duration = seek(info, (uint_fast32_t) desiredIndex, (int_fast32_t) maxFramesToRender, pixels);
 	unlockPixels(env, jbitmap);
 	return duration;
 }
 
-uint_fast32_t seek(GifInfo *info, uint_fast32_t desiredIndex, void *pixels) {
+uint_fast32_t seek(GifInfo *info, uint_fast32_t desiredIndex, int_fast32_t maxFramesToRender, void *pixels) {
 	GifFileType *const gifFilePtr = info->gifFilePtr;
 	if (desiredIndex < info->currentIndex || info->currentIndex == 0) {
 		if (!reset(info)) {
 			gifFilePtr->Error = D_GIF_ERR_REWIND_FAILED;
 			return 0;
 		}
-		prepareCanvas(pixels, info);
+
+        prepareCanvas(pixels, info);
 	}
+
 	if (desiredIndex >= gifFilePtr->ImageCount) {
 		desiredIndex = gifFilePtr->ImageCount - 1;
 	}
 
-	uint_fast32_t i;
-	for (i = desiredIndex; i > info->currentIndex; i--) {
-		const GifImageDesc imageDesc = info->gifFilePtr->SavedImages[i].ImageDesc;
+    int_fast32_t fullFrameSearchBound = info->currentIndex;
+
+    if (maxFramesToRender > 0) {
+        // The index obtained in accordance with the max frames to render bound
+        int_fast32_t tempBound = desiredIndex - maxFramesToRender;
+
+        // Choose the more efficient bound (the bigger fullFrameSearchBound - the less frames to render)
+        if (tempBound > fullFrameSearchBound) {
+            fullFrameSearchBound = tempBound;
+        }
+    }
+
+    uint_fast32_t i;
+	for (i = desiredIndex; i > fullFrameSearchBound; i--) {
+        const GifImageDesc imageDesc = info->gifFilePtr->SavedImages[i].ImageDesc;
 		if (gifFilePtr->SWidth == imageDesc.Width && gifFilePtr->SHeight == imageDesc.Height) {
-			const GraphicsControlBlock controlBlock = info->controlBlock[i];
-			if (controlBlock.TransparentColor == NO_TRANSPARENT_COLOR) {
-				break;
+            const GraphicsControlBlock controlBlock = info->controlBlock[i];
+            if (controlBlock.TransparentColor == NO_TRANSPARENT_COLOR) {
+                break;
 			} else if (controlBlock.DisposalMode == DISPOSE_BACKGROUND) {
 				break;
 			}
 		}
 	}
 
-	if (i > 0) {
+    if (i > 0) {
 		while (info->currentIndex < i - 1) {
 			DDGifSlurp(info, false, true);
 			++info->currentIndex;
@@ -76,14 +90,15 @@ uint_fast32_t seek(GifInfo *info, uint_fast32_t desiredIndex, void *pixels) {
 	do {
 		DDGifSlurp(info, true, false);
 		drawNextBitmap(pixels, info);
-	} while (info->currentIndex++ < desiredIndex);
+
+    } while (info->currentIndex++ < desiredIndex);
 	--info->currentIndex;
-	return getFrameDuration(info);
+    return getFrameDuration(info);
 }
 
 __unused JNIEXPORT void JNICALL
 Java_pl_droidsonroids_gif_GifInfoHandle_seekToTime(JNIEnv *env, jclass __unused handleClass,
-                                                   jlong gifInfo, jint desiredPos, jobject jbitmap) {
+                                                   jlong gifInfo, jint desiredPos, jint maxFramesToRender, jobject jbitmap) {
 	GifInfo *info = (GifInfo *) (intptr_t) gifInfo;
 	if (info == NULL || info->gifFilePtr->ImageCount == 1) {
 		return;
@@ -104,20 +119,20 @@ Java_pl_droidsonroids_gif_GifInfoHandle_seekToTime(JNIEnv *env, jclass __unused 
 		    info->lastFrameRemainder > (long long) info->controlBlock[desiredIndex].DelayTime)
 			info->lastFrameRemainder = info->controlBlock[desiredIndex].DelayTime;
 	}
-	seekBitmap(info, env, desiredIndex, jbitmap);
+	seekBitmap(info, env, desiredIndex, maxFramesToRender, jbitmap);
 
 	info->nextStartTime = getRealTime() + (long) (info->lastFrameRemainder / info->speedFactor);
 }
 
 __unused JNIEXPORT void JNICALL
 Java_pl_droidsonroids_gif_GifInfoHandle_seekToFrame(JNIEnv *env, jclass __unused handleClass,
-                                                    jlong gifInfo, jint desiredIndex, jobject jbitmap) {
+                                                    jlong gifInfo, jint desiredIndex, jint maxFramesToRender, jobject jbitmap) {
 	GifInfo *info = (GifInfo *) (intptr_t) gifInfo;
 	if (info == NULL || info->gifFilePtr->ImageCount == 1) {
 		return;
 	}
 
-	uint_fast32_t lastFrameDuration = seekBitmap(info, env, desiredIndex, jbitmap);
+	uint_fast32_t lastFrameDuration = seekBitmap(info, env, desiredIndex, maxFramesToRender, jbitmap);
 
 	info->nextStartTime = getRealTime() + (long) (lastFrameDuration / info->speedFactor);
 	if (info->lastFrameRemainder != -1)
@@ -128,7 +143,7 @@ __unused JNIEXPORT void JNICALL
 Java_pl_droidsonroids_gif_GifInfoHandle_saveRemainder(JNIEnv *__unused  env, jclass __unused handleClass,
                                                       jlong gifInfo) {
 	GifInfo *info = (GifInfo *) (intptr_t) gifInfo;
-	if (info == NULL || info->lastFrameRemainder != -1 || info->currentIndex == info->gifFilePtr->ImageCount ||
+    if (info == NULL || info->lastFrameRemainder != -1 || info->currentIndex == info->gifFilePtr->ImageCount ||
 	    info->gifFilePtr->ImageCount == 1)
 		return;
 	info->lastFrameRemainder = info->nextStartTime - getRealTime();

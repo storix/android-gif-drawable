@@ -29,7 +29,7 @@ public abstract class InputSource {
 	final GifDrawable build(final GifDrawable oldDrawable, final ScheduledThreadPoolExecutor executor,
 	                        final boolean isRenderingAlwaysEnabled, final GifOptions options) throws IOException {
 
-		return new GifDrawable(createHandleWith(options), oldDrawable, executor, isRenderingAlwaysEnabled);
+		return new GifDrawable(createHandleWith(options), oldDrawable, executor, isRenderingAlwaysEnabled, options);
 	}
 
 	final GifInfoHandle createHandleWith(@NonNull GifOptions options) throws IOException {

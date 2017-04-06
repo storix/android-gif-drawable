@@ -15,6 +15,8 @@ public class GifOptions {
 	char inSampleSize;
 	boolean inIsOpaque;
 
+	private int mMaxFramesToRenderWhenSeeking = -1;
+
 	public GifOptions() {
 		reset();
 	}
@@ -69,5 +71,26 @@ public class GifOptions {
 			inIsOpaque = source.inIsOpaque;
 			inSampleSize = source.inSampleSize;
 		}
+	}
+
+	/**
+	 * The optimization bound for seeking operations.
+	 *
+	 * @return The maximum number of frames to render to reconstruct the seeking frame.
+	 */
+	public int getMaxFramesToRenderWhenSeeking() {
+		return mMaxFramesToRenderWhenSeeking;
+	}
+
+	/**
+	 * Sets the number of the Gif frames that defines an upper-bound for rendering the frames during seeking operations. The default is {@code -1} which means the rendering will proceed until the first frame covering the entire canvas with non-transparent color is found. This can take a while if the number of frames is large.
+	 * <p>
+	 * <b>Note:</b> This option can enhance seeking performance, however, depending on the used disposal methods in a Gif, the frames at the desired indices may be displayed partially.
+	 * </p>
+	 *
+	 * @param maxFramesToRenderWhenSeeking The maximum number of frames to render to reconstruct the seeking frame.
+	 */
+	public void setMaxFramesToRenderWhenSeeking(int maxFramesToRenderWhenSeeking) {
+		mMaxFramesToRenderWhenSeeking = maxFramesToRenderWhenSeeking;
 	}
 }

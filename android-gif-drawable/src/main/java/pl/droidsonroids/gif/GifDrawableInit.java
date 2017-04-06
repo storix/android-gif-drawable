@@ -119,6 +119,17 @@ public abstract class GifDrawableInit<T extends GifDrawableInit<T>> {
     }
 
     /**
+     * Sets the maximum number of frames that will be rendered to reconstruct the seeking frame.
+     *
+     * @param maxFramesToRender An upper-bound for rendering frames during seeking.
+     * See {@link GifOptions#setMaxFramesToRenderWhenSeeking(int)} for more info.
+     */
+    public T maxFramesToRenderWhenSeeking(int maxFramesToRender) {
+        mOptions.setMaxFramesToRenderWhenSeeking(maxFramesToRender);
+        return self();
+    }
+
+    /**
      * Equivalent to {@link #renderingTriggeredOnDraw(boolean)}. This method does not follow naming convention
      * and is preserved for backwards compatibility only.
      *

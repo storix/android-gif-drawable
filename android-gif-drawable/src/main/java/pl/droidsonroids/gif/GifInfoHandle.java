@@ -104,9 +104,9 @@ final class GifInfoHandle {
 
 	private static native int getCurrentPosition(long gifFileInPtr);
 
-	private static native void seekToTime(long gifFileInPtr, int position, Bitmap buffer);
+	private static native void seekToTime(long gifFileInPtr, int position, int maxFramesToRender, Bitmap buffer);
 
-	private static native void seekToFrame(long gifFileInPtr, int frameNr, Bitmap buffer);
+	private static native void seekToFrame(long gifFileInPtr, int frameNr, int maxFramesToRender, Bitmap buffer);
 
 	private static native void saveRemainder(long gifFileInPtr);
 
@@ -232,12 +232,12 @@ final class GifInfoHandle {
 		return getCurrentLoop(gifInfoPtr);
 	}
 
-	synchronized void seekToTime(@IntRange(from = 0, to = Integer.MAX_VALUE) final int position, final Bitmap buffer) {
-		seekToTime(gifInfoPtr, position, buffer);
+	synchronized void seekToTime(@IntRange(from = 0, to = Integer.MAX_VALUE) final int position, @IntRange(from = -1, to = Integer.MAX_VALUE) final int maxFramesToRender,  final Bitmap buffer) {
+		seekToTime(gifInfoPtr, position, maxFramesToRender, buffer);
 	}
 
-	synchronized void seekToFrame(@IntRange(from = 0, to = Integer.MAX_VALUE) final int frameIndex, final Bitmap buffer) {
-		seekToFrame(gifInfoPtr, frameIndex, buffer);
+	synchronized void seekToFrame(@IntRange(from = 0, to = Integer.MAX_VALUE) final int frameIndex, @IntRange(from = -1, to = Integer.MAX_VALUE) final int maxFramesToRender, final Bitmap buffer) {
+		seekToFrame(gifInfoPtr, frameIndex, maxFramesToRender, buffer);
 	}
 
 	synchronized long getAllocationByteCount() {

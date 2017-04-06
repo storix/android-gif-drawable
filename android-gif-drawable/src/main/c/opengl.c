@@ -162,6 +162,6 @@ Java_pl_droidsonroids_gif_GifInfoHandle_seekToFrameGL(__unused JNIEnv *env, jcla
 		return;
 	}
 	TexImageDescriptor *descriptor = info->frameBufferDescriptor;
-	seek(info, (uint_fast32_t) desiredIndex, descriptor->frameBuffer);
+	seek(info, (uint_fast32_t) desiredIndex, -1, descriptor->frameBuffer);
 }
 

@@ -81,6 +81,8 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	private int mScaledWidth;
 	private int mScaledHeight;
 	private Transform mTransform;
+	@NonNull
+	private final GifOptions mGifOptions;
 
 	/**
 	 * Creates drawable from resource.
@@ -121,7 +123,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws NullPointerException if filePath is null
 	 */
 	public GifDrawable(@NonNull String filePath) throws IOException {
-		this(new GifInfoHandle(filePath), null, null, true);
+		this(new GifInfoHandle(filePath), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -145,7 +147,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws NullPointerException     if stream is null
 	 */
 	public GifDrawable(@NonNull InputStream stream) throws IOException {
-		this(new GifInfoHandle(stream), null, null, true);
+		this(new GifInfoHandle(stream), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -157,7 +159,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws IOException          when opening failed
 	 */
 	public GifDrawable(@NonNull AssetFileDescriptor afd) throws IOException {
-		this(new GifInfoHandle(afd), null, null, true);
+		this(new GifInfoHandle(afd), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -168,7 +170,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws NullPointerException if fd is null
 	 */
 	public GifDrawable(@NonNull FileDescriptor fd) throws IOException {
-		this(new GifInfoHandle(fd), null, null, true);
+		this(new GifInfoHandle(fd), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -180,7 +182,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws NullPointerException if bytes are null
 	 */
 	public GifDrawable(@NonNull byte[] bytes) throws IOException {
-		this(new GifInfoHandle(bytes), null, null, true);
+		this(new GifInfoHandle(bytes), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -192,7 +194,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws NullPointerException if buffer is null
 	 */
 	public GifDrawable(@NonNull ByteBuffer buffer) throws IOException {
-		this(new GifInfoHandle(buffer), null, null, true);
+		this(new GifInfoHandle(buffer), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -205,7 +207,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 	 * @throws IOException if resolution fails or destination is not a GIF.
 	 */
 	public GifDrawable(@Nullable ContentResolver resolver, @NonNull Uri uri) throws IOException {
-		this(GifInfoHandle.openUri(resolver, uri), null, null, true);
+		this(GifInfoHandle.openUri(resolver, uri), null, null, true, new GifOptions());
 	}
 
 	/**
@@ -224,13 +226,14 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 						  boolean isRenderingTriggeredOnDraw,
 						  @NonNull GifOptions options) throws IOException {
 
-		this(inputSource.createHandleWith(options), oldDrawable, executor, isRenderingTriggeredOnDraw);
+		this(inputSource.createHandleWith(options), oldDrawable, executor, isRenderingTriggeredOnDraw, options);
 	}
 
-	GifDrawable(GifInfoHandle gifInfoHandle, final GifDrawable oldDrawable, ScheduledThreadPoolExecutor executor, boolean isRenderingTriggeredOnDraw) {
+	GifDrawable(GifInfoHandle gifInfoHandle, final GifDrawable oldDrawable, ScheduledThreadPoolExecutor executor, boolean isRenderingTriggeredOnDraw, @NonNull GifOptions options) {
 		mIsRenderingTriggeredOnDraw = isRenderingTriggeredOnDraw;
 		mExecutor = executor != null ? executor : GifRenderingExecutor.getInstance();
 		mNativeInfoHandle = gifInfoHandle;
+		mGifOptions = options;
 		Bitmap oldBitmap = null;
 		if (oldDrawable != null) {
 			synchronized (oldDrawable.mNativeInfoHandle) {
@@ -523,10 +526,11 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 		if (position < 0) {
 			throw new IllegalArgumentException("Position is not positive");
 		}
+
 		mExecutor.execute(new SafeRunnable(this) {
 			@Override
 			public void doWork() {
-				mNativeInfoHandle.seekToTime(position, mBuffer);
+				mNativeInfoHandle.seekToTime(position, mGifOptions.getMaxFramesToRenderWhenSeeking(), mBuffer);
 				mGifDrawable.mInvalidationHandler.sendEmptyMessageAtTime(MSG_TYPE_INVALIDATION, 0);
 			}
 		});
@@ -546,7 +550,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 		mExecutor.execute(new SafeRunnable(this) {
 			@Override
 			public void doWork() {
-				mNativeInfoHandle.seekToFrame(frameIndex, mBuffer);
+				mNativeInfoHandle.seekToFrame(frameIndex, mGifOptions.getMaxFramesToRenderWhenSeeking(), mBuffer);
 				mInvalidationHandler.sendEmptyMessageAtTime(MSG_TYPE_INVALIDATION, 0);
 			}
 		});
@@ -565,7 +569,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 		}
 		final Bitmap bitmap;
 		synchronized (mNativeInfoHandle) {
-			mNativeInfoHandle.seekToFrame(frameIndex, mBuffer);
+			mNativeInfoHandle.seekToFrame(frameIndex, mGifOptions.getMaxFramesToRenderWhenSeeking(), mBuffer);
 			bitmap = getCurrentFrame();
 		}
 		mInvalidationHandler.sendEmptyMessageAtTime(MSG_TYPE_INVALIDATION, 0);
@@ -585,7 +589,7 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 		}
 		final Bitmap bitmap;
 		synchronized (mNativeInfoHandle) {
-			mNativeInfoHandle.seekToTime(position, mBuffer);
+			mNativeInfoHandle.seekToTime(position, mGifOptions.getMaxFramesToRenderWhenSeeking(), mBuffer);
 			bitmap = getCurrentFrame();
 		}
 		mInvalidationHandler.sendEmptyMessageAtTime(MSG_TYPE_INVALIDATION, 0);
@@ -995,4 +999,21 @@ public class GifDrawable extends Drawable implements Animatable, MediaPlayerCont
 		return mTransform;
 	}
 
+	/**
+	 * @return The maximum number of frames that will be rendered to reconstruct the seeking frame.
+	 * See {@link GifOptions#setMaxFramesToRenderWhenSeeking(int)} for more info.
+	 */
+	public int getMaxFramesToRenderWhenSeeking() {
+		return mGifOptions.getMaxFramesToRenderWhenSeeking();
+	}
+
+    /**
+     * Sets the maximum number of frames that will be rendered to reconstruct the seeking frame.
+     *
+     * @param maxDisposalFramesNumber An upper-bound for rendering frames during seeking.
+     * See {@link GifOptions#setMaxFramesToRenderWhenSeeking(int)} for more info.
+     */
+    public void setMaxFramesToRenderWhenSeeking(int maxDisposalFramesNumber) {
+        mGifOptions.setMaxFramesToRenderWhenSeeking(maxDisposalFramesNumber);
+    }
 }
