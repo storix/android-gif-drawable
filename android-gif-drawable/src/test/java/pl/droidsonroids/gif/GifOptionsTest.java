@@ -18,6 +18,7 @@ public class GifOptionsTest {
 	public void testInitialValues() {
 		assertThat(gifOptions.inSampleSize).isEqualTo((char) 1);
 		assertThat(gifOptions.inIsOpaque).isFalse();
+		assertThat(gifOptions.getMaxFramesToRenderWhenSeeking()).isEqualTo(-1);
 	}
 
 	@Test
@@ -30,6 +31,12 @@ public class GifOptionsTest {
 	public void setInIsOpaque() throws Exception {
 		gifOptions.setInIsOpaque(true);
 		assertThat(gifOptions.inIsOpaque).isTrue();
+	}
+
+	@Test
+	public void setMaxFramesToRenderWhenSeeking() throws Exception {
+		gifOptions.setMaxFramesToRenderWhenSeeking(10);
+		assertThat(gifOptions.getMaxFramesToRenderWhenSeeking()).isEqualTo(10);
 	}
 
 	@Test
